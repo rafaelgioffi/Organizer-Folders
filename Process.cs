@@ -1,19 +1,21 @@
-﻿using System.Configuration;
-using System.Xml;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
+using System.Security.AccessControl;
 
 namespace SortFIlesDown
 {
     public class Process : BackgroundService
     {
-        private readonly IConfiguration _config;
-        public Process(IConfiguration config)
-        {
-            _config = config;
-        }
+        //IConfigurationRoot config = new ConfigurationBuilder()
+        //    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+        //    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        //    .Build();
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            //bool isType = bool.Parse(config["Settings:FoldersPerTypes"]);
+            //bool isDate = bool.Parse(config["Settings:OrderByDate"]);
+            //string folder1 = config["Folders:Folder1"];
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 await GetFoldersAndFiles();
@@ -23,75 +25,78 @@ namespace SortFIlesDown
         }
 
         private async static Task GetFoldersAndFiles()
-        {
-            //IConfigurationRoot config = new ConfigurationBuilder()
-            //.SetBasePath(AppContext.BaseDirectory)
-            //.AddJsonFile("appsettings.json")
-            //.Build();
-            
-            List<string> folders = new();
-
+        {            
+            List<string> folders = new();        
+            folders.Add("c:\\users\\rafael\\Downloads\\");
             try
             {
-                for (int i = 1; i <= 10; i++)
+                //var currentUser = @"C:\Users\SeuUser\";
+                //var fullPath = Path.Combine(currentUser, "Downloads");
+                //var queueFiles = Directory.EnumerateFiles(fullPath);
+
+                foreach (string currentPath in folders)
                 {
-                    if (!string.IsNullOrWhiteSpace(_config.GetValue($"AppSettings:Folder{i}")))
-                    {
-                        folders.Add(config[$"Folder{i}"]);
-                    }
-                }
-
-                foreach (string f in folders)
-                {
-
-                    //var currentUser = @"C:\Users\rafael";
-                    //var fullPath = Path.Combine(currentUser, @"\OneDrive\Imagens\WhatsApp Images");
-                    //var queueFiles = Directory.EnumerateFiles(fullPath);
-                    var queueFiles = Directory.EnumerateFiles(f);
-                    //var fileInfo = new FileInfo(fullPath);
-                    var fileInfo = new FileInfo(f);
-
+                    var queueFiles = Directory.EnumerateFiles(currentPath);
                     if (!queueFiles.Any())
                         return;
 
-                    foreach (var queueFile in queueFiles)
+                var fileInfo = new FileInfo(currentPath);
+                var directoriesToMove = new List<string>();
+
+                foreach (var queueFile in queueFiles)
+                {
+                    fileInfo = new FileInfo(queueFile);
+
+                        //var folderName = Path.Combine(currentPath, $"Arquivos-{fileInfo.Extension.Trim('.').ToLower()}");
+                        string fileYear = fileInfo.LastWriteTime.Year.ToString();
+                        string fileMonth = fileInfo.LastWriteTime.Month.ToString("D2");
+                        var folderYear = Path.Combine(currentPath, fileYear);
+                        var folderMonth = Path.Combine(currentPath, fileYear + "\\" + fileMonth);                                                
+
+                        //if (!Directory.Exists(folderName))
+                        //Directory.CreateDirectory(folderName).Create();
+                        if (!Directory.Exists(folderYear))                        
+                            Directory.CreateDirectory(folderYear).Create();
+                            
+                        if (!Directory.Exists(folderMonth))
+                            Directory.CreateDirectory(folderMonth);                                                  
+
+                        //if (!directoriesToMove.Contains(folderName))
+                     //directoriesToMove.Add(folderName);
+                        if (!directoriesToMove.Contains(folderMonth))
+                            directoriesToMove.Add(folderMonth);                
+                }
+                
+                var pahtFiles = new List<string>();
+
+                foreach (var queueDirectories in directoriesToMove)
+                {
+                    foreach (var queue in queueFiles)
                     {
-                        fileInfo = new FileInfo(queueFile);
+                        fileInfo = new FileInfo(queue);
+                        var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
 
-                        var folderName = Path.Combine(fullPath, $"Arquivos-{fileInfo.Extension.Trim('.')}");
-
-                        if (!Directory.Exists(folderName))
+                        if (!Directory.Exists(folderName) && folderName.Contains(fileInfo.Extension.Replace(".", "-").ToLower()))
                             Directory.CreateDirectory(folderName).Create();
 
+                        if (!pahtFiles.Contains(folderName))
+                            pahtFiles.Add(folderName);
                     }
-
-                    var pahtFiles = new Queue<string>();
-
-                    foreach (var queueDirectories in Directory.EnumerateDirectories(fullPath))
-                    {
-                        foreach (var queue in queueFiles)
-                        {
-                            fileInfo = new FileInfo(queue);
-                            var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
-
-                            if (!Directory.Exists(folderName))
-                                Directory.CreateDirectory(folderName).Create();
-
-                            if (!pahtFiles.Contains(folderName))
-                                pahtFiles.Enqueue(folderName);
-                        }
-                    }
-
-                    MoveFiles(ref pahtFiles, ref queueFiles, ref fileInfo);
                 }
-            }
-            catch (Exception)
-            {
 
+                MoveFiles(ref pahtFiles, ref queueFiles, ref fileInfo);
+
+                pahtFiles.Clear();
+                }          
+             
             }
-            await Task.FromResult(0);
+            catch(Exception)
+            {
+                
+            }
+           await Task.FromResult(0);
         }
-        private static void MoveFiles(ref Queue<string> pathFiles, ref IEnumerable<string> fileList, ref FileInfo fileInfo)
+        private static void MoveFiles(ref List<string> pathFiles, ref IEnumerable<string> fileList, ref FileInfo fileInfo)
         {
             try
             {
@@ -107,29 +112,27 @@ namespace SortFIlesDown
                         if (folder.EndsWith(fileInfoDate) && folder.ToLower().Contains(fileInfo.Extension.Replace('.', '-').ToLower()))
                         {
 
-                            var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
-
-                            File.Move(file, result);
-                            Console.WriteLine("Passei aqui e movi");
+                             var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
+                            
+                             File.Move(file, result);
 
                             break;
                         }
-
+                         
                     }
 
-
+                   
                 }
-            }
-            catch (Exception) { }
+            }catch(Exception) { }
         }
-        private static string fileExistsInPath(string directory, string file, string extension)
+        private static string  fileExistsInPath(string directory, string file, string extension)
         {
 
             var fullPath = Path.Combine(directory, file);
 
             if (!File.Exists(fullPath))
             {
-                return fullPath;
+               return  fullPath;
             }
 
             file = file.Replace(extension, "");
