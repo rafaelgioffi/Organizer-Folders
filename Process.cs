@@ -30,6 +30,7 @@ namespace SortFIlesDown
             List<string> folders = new();        
             //folders.Add("c:\\users\\rafael\\Downloads\\");
             folders.Add(folder1);
+            folders.Add(folder2);
             try
             {
                 //var currentUser = @"C:\Users\SeuUser\";
