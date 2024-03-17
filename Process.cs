@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Security.AccessControl;
 
@@ -6,15 +7,15 @@ namespace SortFIlesDown
 {
     public class Process : BackgroundService
     {
-        //IConfigurationRoot config = new ConfigurationBuilder()
-        //    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-        //    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-        //    .Build();
+        IConfigurationRoot config = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             //bool isType = bool.Parse(config["Settings:FoldersPerTypes"]);
             //bool isDate = bool.Parse(config["Settings:OrderByDate"]);
-            //string folder1 = config["Folders:Folder1"];
+            string folder1 = config["Folders:Folder1"];
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -27,7 +28,8 @@ namespace SortFIlesDown
         private async static Task GetFoldersAndFiles()
         {            
             List<string> folders = new();        
-            folders.Add("c:\\users\\rafael\\Downloads\\");
+            //folders.Add("c:\\users\\rafael\\Downloads\\");
+            folders.Add(folder1);
             try
             {
                 //var currentUser = @"C:\Users\SeuUser\";
