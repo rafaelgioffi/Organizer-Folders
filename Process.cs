@@ -40,14 +40,21 @@ namespace SortFIlesDown
             //.Build();
            
             string folder1 = config["Folders:Folder1"];
+            string folder2 = config["Folders:Folder2"];
+            string folder3 = config["Folders:Folder3"];
+            string folder4 = config["Folders:Folder4"];
+            string folder5 = config["Folders:Folder5"];
             bool isType = bool.Parse(config["Settings:FoldersPerTypes"]);
             bool isDate = bool.Parse(config["Settings:OrderByDate"]);
 
-            List<string> folders = new();        
+            List<string> folders = new();
+            if (!string.IsNullOrEmpty(folder1))
+                    folders.Add(folder1);
+            if (!string.IsNullOrEmpty(folder2))
+                    folders.Add(folder2);
+            
             //folders.Add("c:\\users\\rafael\\Downloads\\");
             
-            folders.Add(folder1);
-            //folders.Add(folder2);
             try
             {
                 //var currentUser = @"C:\Users\SeuUser\";
