@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.VisualBasic.FileIO;
-using System.Diagnostics;
-using System.Security.AccessControl;
 
 namespace SortFIlesDown
 {
@@ -23,22 +21,23 @@ namespace SortFIlesDown
         {
             string dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
             string fileSettings = dirSettings + "appSettings.json";
-            
 
-            if (!File.Exists(fileSettings)) {
+
+            if (!File.Exists(fileSettings))
+            {
                 Directory.CreateDirectory(Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders"));
                 File.Copy(AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json", fileSettings, true);
             }
-            
-               var config = new ConfigurationBuilder()
-                .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
-                .Build();
-            
+
+            var config = new ConfigurationBuilder()
+             .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
+             .Build();
+
             //IConfigurationRoot config = new ConfigurationBuilder()
             ////.SetBasePath(dirSettings)
             //.AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
             //.Build();
-           
+
             string folder1 = config["Folders:Folder1"];
             string folder2 = config["Folders:Folder2"];
             string folder3 = config["Folders:Folder3"];
@@ -49,12 +48,16 @@ namespace SortFIlesDown
 
             List<string> folders = new();
             if (!string.IsNullOrEmpty(folder1))
-                    folders.Add(folder1);
+                folders.Add(folder1);
             if (!string.IsNullOrEmpty(folder2))
-                    folders.Add(folder2);
-            
-            //folders.Add("c:\\users\\rafael\\Downloads\\");
-            
+                folders.Add(folder2);
+            if (!string.IsNullOrEmpty(folder3))
+                folders.Add(folder3);
+            if (!string.IsNullOrEmpty(folder4))
+                folders.Add(folder4);
+            if (!string.IsNullOrEmpty(folder5))
+                folders.Add(folder5);
+
             try
             {
                 //var currentUser = @"C:\Users\SeuUser\";
@@ -67,61 +70,70 @@ namespace SortFIlesDown
                     if (!queueFiles.Any())
                         return;
 
-                var fileInfo = new FileInfo(currentPath);
-                var directoriesToMove = new List<string>();
+                    var fileInfo = new FileInfo(currentPath);
+                    var directoriesToMove = new List<string>();
 
-                foreach (var queueFile in queueFiles)
-                {
-                    fileInfo = new FileInfo(queueFile);
-
-                        //var folderName = Path.Combine(currentPath, $"Arquivos-{fileInfo.Extension.Trim('.').ToLower()}");
-                        string fileYear = fileInfo.LastWriteTime.Year.ToString();
-                        string fileMonth = fileInfo.LastWriteTime.Month.ToString("D2");
-                        var folderYear = Path.Combine(currentPath, fileYear);
-                        var folderMonth = Path.Combine(currentPath, fileYear + "\\" + fileMonth);                                                
-
-                        //if (!Directory.Exists(folderName))
-                        //Directory.CreateDirectory(folderName).Create();
-                        if (!Directory.Exists(folderYear))                        
-                            Directory.CreateDirectory(folderYear).Create();
-                            
-                        if (!Directory.Exists(folderMonth))
-                            Directory.CreateDirectory(folderMonth);                                                  
-
-                        //if (!directoriesToMove.Contains(folderName))
-                     //directoriesToMove.Add(folderName);
-                        if (!directoriesToMove.Contains(folderMonth))
-                            directoriesToMove.Add(folderMonth);                
-                }
-                
-                var pahtFiles = new List<string>();
-
-                foreach (var queueDirectories in directoriesToMove)
-                {
-                    foreach (var queue in queueFiles)
+                    foreach (var queueFile in queueFiles)
                     {
-                        fileInfo = new FileInfo(queue);
-                        var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
+                        fileInfo = new FileInfo(queueFile);
 
-                        if (!Directory.Exists(folderName) && folderName.Contains(fileInfo.Extension.Replace(".", "-").ToLower()))
-                            Directory.CreateDirectory(folderName).Create();
+                        if (isDate)
+                        {
+                            string fileYear = fileInfo.LastWriteTime.Year.ToString();
+                            string fileMonth = fileInfo.LastWriteTime.Month.ToString("D2");
+                            var folderYear = Path.Combine(currentPath, fileYear);
+                            var folderMonth = Path.Combine(currentPath, fileYear + "\\" + fileMonth);
 
-                        if (!pahtFiles.Contains(folderName))
-                            pahtFiles.Add(folderName);
+                            if (!Directory.Exists(folderYear))
+                                Directory.CreateDirectory(folderYear).Create();
+
+                            if (!Directory.Exists(folderMonth))
+                                Directory.CreateDirectory(folderMonth);
+
+                            if (!directoriesToMove.Contains(folderMonth))
+                                directoriesToMove.Add(folderMonth);
+                        }
+                        else if (isType)
+                        {
+                            var folderName = Path.Combine(currentPath, $"Arquivos-{fileInfo.Extension.Trim('.').ToLower()}");
+
+                            if (!Directory.Exists(folderName))
+                                Directory.CreateDirectory(folderName).Create();
+
+                            if (!directoriesToMove.Contains(folderName))
+                                directoriesToMove.Add(folderName);
+                        }
+
                     }
+
+                    var pahtFiles = new List<string>();
+
+                    foreach (var queueDirectories in directoriesToMove)
+                    {
+                        foreach (var queue in queueFiles)
+                        {
+                            fileInfo = new FileInfo(queue);
+                            var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
+
+                            if (!Directory.Exists(folderName) && folderName.Contains(fileInfo.Extension.Replace(".", "-").ToLower()))
+                                Directory.CreateDirectory(folderName).Create();
+
+                            if (!pahtFiles.Contains(folderName))
+                                pahtFiles.Add(folderName);
+                        }
+                    }
+
+                    MoveFiles(ref pahtFiles, ref queueFiles, ref fileInfo);
+
+                    pahtFiles.Clear();
                 }
 
-                MoveFiles(ref pahtFiles, ref queueFiles, ref fileInfo);
-
-                pahtFiles.Clear();
-                }          
-             
             }
-            catch(Exception)
+            catch (Exception)
             {
-                
+
             }
-           await Task.FromResult(0);
+            await Task.FromResult(0);
         }
         private static void MoveFiles(ref List<string> pathFiles, ref IEnumerable<string> fileList, ref FileInfo fileInfo)
         {
@@ -139,27 +151,28 @@ namespace SortFIlesDown
                         if (folder.EndsWith(fileInfoDate) && folder.ToLower().Contains(fileInfo.Extension.Replace('.', '-').ToLower()))
                         {
 
-                             var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
-                            
-                             File.Move(file, result);
+                            var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
+
+                            File.Move(file, result);
 
                             break;
                         }
-                         
+
                     }
 
-                   
+
                 }
-            }catch(Exception) { }
+            }
+            catch (Exception) { }
         }
-        private static string  fileExistsInPath(string directory, string file, string extension)
+        private static string fileExistsInPath(string directory, string file, string extension)
         {
 
             var fullPath = Path.Combine(directory, file);
 
             if (!File.Exists(fullPath))
             {
-               return  fullPath;
+                return fullPath;
             }
 
             file = file.Replace(extension, "");
