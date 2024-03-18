@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.VisualBasic.FileIO;
 using System.Diagnostics;
 using System.Security.AccessControl;
 
@@ -7,15 +8,8 @@ namespace SortFIlesDown
 {
     public class Process : BackgroundService
     {
-        IConfigurationRoot config = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .Build();
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            //bool isType = bool.Parse(config["Settings:FoldersPerTypes"]);
-            //bool isDate = bool.Parse(config["Settings:OrderByDate"]);
-            string folder1 = config["Folders:Folder1"];
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -26,11 +20,34 @@ namespace SortFIlesDown
         }
 
         private async static Task GetFoldersAndFiles()
-        {            
+        {
+            string dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
+            string fileSettings = dirSettings + "appSettings.json";
+            
+
+            if (!File.Exists(fileSettings)) {
+                Directory.CreateDirectory(Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders"));
+                File.Copy(AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json", fileSettings, true);
+            }
+            
+               var config = new ConfigurationBuilder()
+                .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
+                .Build();
+            
+            //IConfigurationRoot config = new ConfigurationBuilder()
+            ////.SetBasePath(dirSettings)
+            //.AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
+            //.Build();
+           
+            string folder1 = config["Folders:Folder1"];
+            bool isType = bool.Parse(config["Settings:FoldersPerTypes"]);
+            bool isDate = bool.Parse(config["Settings:OrderByDate"]);
+
             List<string> folders = new();        
             //folders.Add("c:\\users\\rafael\\Downloads\\");
+            
             folders.Add(folder1);
-            folders.Add(folder2);
+            //folders.Add(folder2);
             try
             {
                 //var currentUser = @"C:\Users\SeuUser\";
