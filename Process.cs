@@ -113,13 +113,15 @@ namespace SortFIlesDown
                         foreach (var queue in queueFiles)
                         {
                             fileInfo = new FileInfo(queue);
-                            var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
+                            //var folderName = Path.Combine(queueDirectories, $"{fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-")}");
 
-                            if (!Directory.Exists(folderName) && folderName.Contains(fileInfo.Extension.Replace(".", "-").ToLower()))
-                                Directory.CreateDirectory(folderName).Create();
+                            //if (!Directory.Exists(folderName) && folderName.Contains(fileInfo.Extension.Replace(".", "-").ToLower()))
+                                //Directory.CreateDirectory(folderName).Create();
 
-                            if (!pahtFiles.Contains(folderName))
-                                pahtFiles.Add(folderName);
+                            //if (!pahtFiles.Contains(folderName))
+                            if (!pahtFiles.Contains(queueDirectories))
+                                //pahtFiles.Add(folderName);                                
+                                pahtFiles.Add(queueDirectories);
                         }
                     }
 
@@ -145,18 +147,19 @@ namespace SortFIlesDown
 
                     foreach (var folder in pathFiles)
                     {
-                        var fileInfoDate = fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-");
+                        //var fileInfoDate = fileInfo.LastWriteTimeUtc.ToShortDateString().Replace("/", "-");
 
 
-                        if (folder.EndsWith(fileInfoDate) && folder.ToLower().Contains(fileInfo.Extension.Replace('.', '-').ToLower()))
-                        {
+                        //if (folder.EndsWith(fileInfoDate) && folder.ToLower().Contains(fileInfo.Extension.Replace('.', '-').ToLower()))
+                        //{
 
-                            var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
+                        //var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
+                        var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension);
 
-                            File.Move(file, result);
+                        File.Move(file, result);
 
-                            break;
-                        }
+                        break;
+                        //}
 
                     }
 
@@ -167,7 +170,7 @@ namespace SortFIlesDown
         }
         private static string fileExistsInPath(string directory, string file, string extension)
         {
-
+            int fileNum = 2;
             var fullPath = Path.Combine(directory, file);
 
             if (!File.Exists(fullPath))
@@ -177,7 +180,8 @@ namespace SortFIlesDown
 
             file = file.Replace(extension, "");
 
-            var newFileName = Path.Combine(directory, $"{file}-Copy-{DateTime.Now.Nanosecond}{extension}");
+            //var newFileName = Path.Combine(directory, $"{file}-Copy-{DateTime.Now.Nanosecond}{extension}");
+            var newFileName = Path.Combine(directory, $"{file} ({fileNum}){extension}");
 
             return newFileName;
         }
