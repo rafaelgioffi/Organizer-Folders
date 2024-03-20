@@ -11,8 +11,11 @@ namespace SortFIlesDown
         string dirSettings = "";
 
         IConfigurationRoot config;
+
         public void ReadConfigFile()
         {
+            Log("Iniciando a execução...");
+
             dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
             fileSettings = dirSettings + "appSettings.json";
             string projectFilePath = AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json";
@@ -22,10 +25,11 @@ namespace SortFIlesDown
                 try
                 {
                     Directory.CreateDirectory(dirSettings);
+                    Log($"Diretório {dirSettings} criado.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Falha ao criar o diretório {dirSettings}. {ex.Message}");
+                    Log($"Falha ao criar o diretório {dirSettings}. {ex.Message}");
                 }
             }
 
@@ -34,10 +38,11 @@ namespace SortFIlesDown
                 try
                 {
                     File.Copy(projectFilePath, fileSettings, true);
+                    Log($"Arquivo {projectFilePath} copiado para {fileSettings}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Falha ao criar o arquivo de configurações em {fileSettings}. {ex.Message}");
+                    Log($"Falha ao copiar o arquivo de configurações para {fileSettings}. {ex.Message}");
                 }
             }
 
@@ -50,7 +55,15 @@ namespace SortFIlesDown
 
             if (!JToken.DeepEquals(jpf, jdf))
             {
-                File.Copy(projectFilePath, fileSettings, true);
+                try
+                {
+                    File.Copy(projectFilePath, fileSettings, true);
+                    Log($"Arquivo de configurações diferentes na origem e/ou destino. Arquivo substituído");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Erro ao copiar o arquivo {projectFilePath} para {fileSettings}. {ex.Message}");
+                }
             }
 
             config = new ConfigurationBuilder()
@@ -132,7 +145,7 @@ namespace SortFIlesDown
 
             if (folders.Count != types.Count)
             {
-                Console.WriteLine($"Configurações inválidas! Pastas: {folders.Count}. Tipos de pastas: {types.Count}.\nÉ necessário ter as mesmas configurações.");
+                Log($"Configurações inválidas! Pastas: {folders.Count}. Tipos de pastas: {types.Count}.\nÉ necessário ter as mesmas configurações.");
                 return;
             }
 
@@ -149,6 +162,7 @@ namespace SortFIlesDown
                     var queueFiles = Directory.EnumerateFiles(folders[i]);
                     if (queueFiles.Any())
                     {
+                        Log($"Processando a pasta {folders[i]}");
                         //return;
 
                         //var fileInfo = new FileInfo(currentPath);
@@ -170,10 +184,16 @@ namespace SortFIlesDown
                                     var folderMonth = Path.Combine(folders[i], fileYear + "\\" + fileMonth);
 
                                     if (!Directory.Exists(folderYear))
+                                    {
                                         Directory.CreateDirectory(folderYear).Create();
+                                        Log($"Criada a pasta {folderYear}");
+                                    }
 
                                     if (!Directory.Exists(folderMonth))
+                                    {
                                         Directory.CreateDirectory(folderMonth);
+                                        Log($"Criada a pasta {folderMonth}");
+                                    }
 
                                     //if (!directoriesToMove.Contains(folderMonth))
                                     //directoriesToMove.Add(folderMonth);
@@ -187,7 +207,7 @@ namespace SortFIlesDown
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
+                                        Log($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
                                     }
                                     break;
 
@@ -204,7 +224,10 @@ namespace SortFIlesDown
                                     }
 
                                     if (!Directory.Exists(folderName))
+                                    {
                                         Directory.CreateDirectory(folderName).Create();
+                                        Log($"Criada a pasta {folderName}");
+                                    }
 
                                     //if (!directoriesToMove.Contains(folderName))
                                     //    directoriesToMove.Add(folderName);
@@ -218,7 +241,7 @@ namespace SortFIlesDown
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
+                                        Log($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
                                     }
                                     break;
                             }
@@ -251,9 +274,10 @@ namespace SortFIlesDown
                 }
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Log($"Falha ao processar a pasta {folders[i]}... {ex.Message}");
+                PAREI AQUI
             }
             await Task.FromResult(0);
         }
@@ -289,7 +313,6 @@ namespace SortFIlesDown
             catch (Exception) { }
         }
 
-
         private static string fileExistsInPath(string directory, string file, string extension, int number)
         {
             var fullPath = Path.Combine(directory, file);
@@ -311,6 +334,26 @@ namespace SortFIlesDown
             }
 
             return newFileName;
+        }
+
+        public void Log(string message, bool special = false)
+        {
+            if (bool.Parse(config["Settings:Log"]))
+            {
+                using (StreamWriter sw = new StreamWriter(config["Logging:File"], true))
+                {
+                    if (special)
+                    {
+                        sw.WriteLine(message);
+                        Console.WriteLine(message);
+                    }
+                    else
+                    {
+                        sw.WriteLine($"{DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")} => {message}");
+                        Console.WriteLine($"{DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")} => {message}");
+                    }
+                }
+            }
         }
 
     }
