@@ -1,54 +1,110 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.VisualBasic.FileIO;
+using Newtonsoft.Json.Linq;
 
 namespace SortFIlesDown
 {
     public class Process : BackgroundService
     {
+        string fileSettings = "";
+        string dirSettings = "";
+
+        IConfigurationRoot config;
+        public void ReadConfigFile()
+        {
+            dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
+            fileSettings = dirSettings + "appSettings.json";
+            string projectFilePath = AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json";
+
+            if (!Directory.Exists(dirSettings))
+            {
+                try
+                {
+                    Directory.CreateDirectory(dirSettings);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Falha ao criar o diretório {dirSettings}. {ex.Message}");
+                }
+            }
+
+            if (!File.Exists(fileSettings))
+            {
+                try
+                {
+                    File.Copy(projectFilePath, fileSettings, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Falha ao criar o arquivo de configurações em {fileSettings}. {ex.Message}");
+                }
+            }
+
+            //verifica se os arquivos são iguais, senão substitui na pasta de destino...
+            string projectFile = File.ReadAllText(projectFilePath);
+            string destinationFile = File.ReadAllText(fileSettings);
+
+            JObject jpf = JObject.Parse(projectFile);
+            JObject jdf = JObject.Parse(destinationFile);
+
+            if (!JToken.DeepEquals(jpf, jdf))
+            {
+                File.Copy(projectFilePath, fileSettings, true);
+            }
+
+            config = new ConfigurationBuilder()
+            //.SetBasePath(dirSettings)
+            .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
+            .Build();
+        }
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            ReadConfigFile();
+
+            int monitoringTime;
+            int.TryParse(config["Settings:IntervalMonitoring"], out monitoringTime);
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 await GetFoldersAndFiles();
 
-                await Task.Delay(TimeSpan.FromMinutes(5));
+                await Task.Delay(TimeSpan.FromMinutes(monitoringTime));
             }
         }
 
-        private async static Task GetFoldersAndFiles()
+        private async Task GetFoldersAndFiles()
         {
-            string dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
-            string fileSettings = dirSettings + "appSettings.json";
+            //string dirSettings = Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders\\");
+            //string fileSettings = dirSettings + "appSettings.json";
 
+            //if (!File.Exists(fileSettings))
+            //{
+            //    Directory.CreateDirectory(Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders"));
+            //    File.Copy(AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json", fileSettings, true);
+            //}
 
-            if (!File.Exists(fileSettings))
-            {
-                Directory.CreateDirectory(Path.GetFullPath($"{SpecialDirectories.MyDocuments}\\OrganizeFolders"));
-                File.Copy(AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\appSettings.json", fileSettings, true);
-            }
-
-            var config = new ConfigurationBuilder()
-             .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
-             .Build();
+            //var config = new ConfigurationBuilder()
+            // .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
+            // .Build();
 
             //IConfigurationRoot config = new ConfigurationBuilder()
             ////.SetBasePath(dirSettings)
             //.AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
             //.Build();
 
+
             string folder1 = config["Folders:Folder1"];
             string folder2 = config["Folders:Folder2"];
             string folder3 = config["Folders:Folder3"];
             string folder4 = config["Folders:Folder4"];
             string folder5 = config["Folders:Folder5"];
-            
+
             string type1 = config["FolderOrderType:Type1"];
             string type2 = config["FolderOrderType:Type2"];
             string type3 = config["FolderOrderType:Type3"];
             string type4 = config["FolderOrderType:Type4"];
-            string type5 = config["FolderOrderType:Type5"];            
+            string type5 = config["FolderOrderType:Type5"];
 
             List<string> folders = new();
             List<string> types = new();
@@ -62,7 +118,7 @@ namespace SortFIlesDown
                 folders.Add(folder4);
             if (!string.IsNullOrEmpty(folder5))
                 folders.Add(folder5);
-            
+
             if (!string.IsNullOrEmpty(type1))
                 types.Add(type1);
             if (!string.IsNullOrEmpty(type2))
@@ -91,71 +147,81 @@ namespace SortFIlesDown
                 {
                     //var queueFiles = Directory.EnumerateFiles(currentPath);
                     var queueFiles = Directory.EnumerateFiles(folders[i]);
-                    if (!queueFiles.Any())
-                        return;
-
-                    //var fileInfo = new FileInfo(currentPath);
-                    var fileInfo = new FileInfo(folders[i]);
-                    //var directoriesToMove = new List<string>();
-
-                    foreach (var queueFile in queueFiles)
+                    if (queueFiles.Any())
                     {
-                        fileInfo = new FileInfo(queueFile);
+                        //return;
 
-                        switch (types[i])
+                        //var fileInfo = new FileInfo(currentPath);
+                        var fileInfo = new FileInfo(folders[i]);
+                        //var directoriesToMove = new List<string>();
+
+                        foreach (var queueFile in queueFiles)
                         {
-                            case "date":
-                                string fileYear = fileInfo.CreationTime.Year.ToString();
-                                string fileMonth = fileInfo.CreationTime.Month.ToString("D2");
-                                //var folderYear = Path.Combine(currentPath, fileYear);
-                                var folderYear = Path.Combine(folders[i], fileYear);
-                                //var folderMonth = Path.Combine(currentPath, fileYear + "\\" + fileMonth);
-                                var folderMonth = Path.Combine(folders[i], fileYear + "\\" + fileMonth);
+                            fileInfo = new FileInfo(queueFile);
 
-                                if (!Directory.Exists(folderYear))
-                                    Directory.CreateDirectory(folderYear).Create();
+                            switch (types[i])
+                            {
+                                case "date":
+                                    string fileYear = fileInfo.CreationTime.Year.ToString();
+                                    string fileMonth = fileInfo.CreationTime.Month.ToString("D2");
+                                    //var folderYear = Path.Combine(currentPath, fileYear);
+                                    var folderYear = Path.Combine(folders[i], fileYear);
+                                    //var folderMonth = Path.Combine(currentPath, fileYear + "\\" + fileMonth);
+                                    var folderMonth = Path.Combine(folders[i], fileYear + "\\" + fileMonth);
 
-                                if (!Directory.Exists(folderMonth))
-                                    Directory.CreateDirectory(folderMonth);
+                                    if (!Directory.Exists(folderYear))
+                                        Directory.CreateDirectory(folderYear).Create();
 
-                                //if (!directoriesToMove.Contains(folderMonth))
-                                //directoriesToMove.Add(folderMonth);
+                                    if (!Directory.Exists(folderMonth))
+                                        Directory.CreateDirectory(folderMonth);
 
-                                int fileNumber = 1;
-                                var result = fileExistsInPath(folderMonth, fileInfo.Name, fileInfo.Extension, fileNumber);
+                                    //if (!directoriesToMove.Contains(folderMonth))
+                                    //directoriesToMove.Add(folderMonth);
 
-                                try
-                                {
-                                    File.Move(queueFile, result);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
-                                }
-                                break;
+                                    int fileNumber = 1;
+                                    var result = fileExistsInPath(folderMonth, fileInfo.Name, fileInfo.Extension, fileNumber);
 
-                            case "type":                                
-                                //var folderName = Path.Combine(currentPath, fileInfo.Extension.Trim('.').ToLower());
-                                var folderName = Path.Combine(folders[i], fileInfo.Extension.Trim('.').ToLower());
+                                    try
+                                    {
+                                        File.Move(queueFile, result);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
+                                    }
+                                    break;
 
-                                if (!Directory.Exists(folderName))
-                                    Directory.CreateDirectory(folderName).Create();
+                                case "type":
+                                    //var folderName = Path.Combine(currentPath, fileInfo.Extension.Trim('.').ToLower());
+                                    var folderName = "";
+                                    if (string.IsNullOrEmpty(fileInfo.Extension))
+                                    {
+                                        folderName = Path.Combine(folders[i], "no-extension");
+                                    }
+                                    else
+                                    {
+                                        folderName = Path.Combine(folders[i], fileInfo.Extension.Trim('.').ToLower());
+                                    }
 
-                                //if (!directoriesToMove.Contains(folderName))
-                                //    directoriesToMove.Add(folderName);
+                                    if (!Directory.Exists(folderName))
+                                        Directory.CreateDirectory(folderName).Create();
 
-                                fileNumber = 1;
-                                result = fileExistsInPath(folderName, fileInfo.Name, fileInfo.Extension, fileNumber);
+                                    //if (!directoriesToMove.Contains(folderName))
+                                    //    directoriesToMove.Add(folderName);
 
-                                try
-                                {
-                                    File.Move(queueFile, result);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
-                                }
-                                break;
+                                    fileNumber = 1;
+                                    result = fileExistsInPath(folderName, fileInfo.Name, fileInfo.Extension, fileNumber);
+
+                                    try
+                                    {
+                                        File.Move(queueFile, result);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"Falha ao mover o arquivo {queueFile}. {ex.Message}");
+                                    }
+                                    break;
+                            }
                         }
                     }
 
