@@ -323,32 +323,66 @@ namespace OrganizeFolders
                 string tempFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp\\");
                 string winTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp\\");
                 string prefetchDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Prefetch\\");
-                try
-                {
-                    Directory.Delete(tempFolder, true);
-                }
-                catch (Exception ex)
-                {
-                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
-                }
+                
+                List<string> tempFolders = new List<string>();
+                tempFolders.Add(tempFolder);
+                tempFolders.Add(winTemp);
+                tempFolders.Add(prefetchDir);
 
-                try
+                foreach (var tmp in tempFolders)    //Lista as pastas temporárias...
                 {
-                    Directory.Delete(winTemp, true);
-                }
-                catch (Exception ex)
-                {
-                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
-                }
+                    try // Tenta excluir cada arquivo da pasta....
+                    {
+                        var queueTemp = Directory.EnumerateFiles(tmp);
+                        foreach (var file in queueTemp)
+                        {
+                            try
+                            {
+                                File.Delete(file);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log($"Não foi possível excluir {file}. {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Falha ao excluir arquivos temporários em {tmp}. {ex.Message}");
+                    }
 
-                try
-                {
-                    Directory.Delete(prefetchDir, true);
-                }
-                catch (Exception ex)
-                {
-                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
-                }
+                    try // Tenta excluir cada pasta...
+                    {
+                        var queueTempFolders = Directory.EnumerateDirectories(tmp);
+                        foreach (var folder in queueTempFolders)  // Lista cada sub-pasta...
+                        {
+                            var queueSubFoldersFile = Directory.EnumerateFiles(folder);
+                            foreach (var file in queueSubFoldersFile)    // tenta excluir os arquivos em cada sub-pasta...
+                            {
+                                try
+                                {
+                                    File.Delete(file);
+                                }
+                                catch (Exception ex )
+                                {
+                                    Log($"Falha ao excluir o arquivo {file} em {folder}. {ex.Message}");
+                                }
+                            }
+                            try //Após excluir cada arquivo da sub-pasta, tenta excluir a pasta...
+                            {
+                                Directory.Delete(folder);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log($"Falha ao excluir o diretório {folder}. {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Falha ao excluir pastas em {tmp}");
+                    }
+                }                
             }
         }
 
