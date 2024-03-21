@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json.Linq;
 
-namespace SortFIlesDown
+namespace OrganizeFolders
 {
     public class Process : BackgroundService
     {
