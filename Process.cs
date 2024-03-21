@@ -9,6 +9,8 @@ namespace SortFIlesDown
     {
         string fileSettings = "";
         string dirSettings = "";
+        bool logging = false;
+        bool cleanTemp = false;
 
         IConfigurationRoot config;
 
@@ -70,6 +72,9 @@ namespace SortFIlesDown
             //.SetBasePath(dirSettings)
             .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
             .Build();
+
+            logging = bool.Parse(config["Settings:Log"]);
+            cleanTemp = bool.Parse(config["Settings:CleanTempData"]);
         }
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -81,6 +86,13 @@ namespace SortFIlesDown
             while (!stoppingToken.IsCancellationRequested)
             {
                 await GetFoldersAndFiles();
+
+                ClearTemp();
+
+                Log("Fim da execução");
+                Log("", true);
+                Log($"Aguardando {monitoringTime} minutos para a próxima execução...");
+                Log("", true);
 
                 await Task.Delay(TimeSpan.FromMinutes(monitoringTime));
             }
@@ -272,16 +284,14 @@ namespace SortFIlesDown
 
                     //pathFiles.Clear();
                 }
-
             }
             catch (Exception ex)
             {
-                Log($"Falha ao processar a pasta {folders[i]}... {ex.Message}");
-                PAREI AQUI
+                Log($"Falha ao processar... {ex.Message}");
             }
             await Task.FromResult(0);
         }
-        private static void MoveFiles(ref List<string> pathFiles, ref IEnumerable<string> fileList, ref FileInfo fileInfo)
+        private void MoveFiles(ref List<string> pathFiles, ref IEnumerable<string> fileList, ref FileInfo fileInfo)
         {
             try
             {
@@ -301,19 +311,24 @@ namespace SortFIlesDown
                         int fileNumber = 1;
                         var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension, fileNumber);
 
-                        File.Move(file, result);
+                        try
+                        {
+                            File.Move(file, result);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Falha ao mover o arquivo {file} para {result}. {ex.Message}");
+                        }
 
                         break;
                         //}
-
                     }
-
                 }
             }
             catch (Exception) { }
         }
 
-        private static string fileExistsInPath(string directory, string file, string extension, int number)
+        private string fileExistsInPath(string directory, string file, string extension, int number)
         {
             var fullPath = Path.Combine(directory, file);
 
@@ -331,14 +346,52 @@ namespace SortFIlesDown
             {
                 number++;
                 newFileName = Path.Combine(directory, $"{file} ({number}){extension}");
+                Log($"Arquivo {file} já existe em {fullPath}. Tentando salvar como {newFileName}.");
             }
 
             return newFileName;
         }
 
+        public void ClearTemp()
+        {
+            //cleanTemp = bool.Parse(config["Settings:CleanTempData"]);
+            if (cleanTemp)
+            {
+                string tempFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp\\");
+                string winTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp\\");
+                string prefetchDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Prefetch\\");
+                try {
+                    Directory.Delete(tempFolder, true);                    
+                }
+                catch (Exception ex)
+                {
+                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
+                }
+
+                try
+                {
+                    Directory.Delete(winTemp, true);
+                }
+                catch (Exception ex)
+                {
+                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
+                }
+
+                try
+                {
+                    Directory.Delete(prefetchDir, true);
+                }
+                catch (Exception ex)
+                {
+                    Log($"Falha ao excluir arquivo temporário. {ex.Message}");
+                }
+            }
+        }
+
         public void Log(string message, bool special = false)
         {
-            if (bool.Parse(config["Settings:Log"]))
+            //logging = bool.Parse(config["Settings:Log"]);
+            if (logging)
             {
                 using (StreamWriter sw = new StreamWriter(config["Logging:File"], true))
                 {
