@@ -12,12 +12,11 @@ Esse projeto é uma demonstração simples do uso de background services do .NET
   <li>Tempo de execução de cada ciclo configurado pelo usuário</li>
 </ul>
     Exemplo de pasta ordenada por data:<br>
-![image](https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/05f45870-ba7c-47d5-a914-f4e4d9158ee7)
-
-<br>
+    <img src="https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/05f45870-ba7c-47d5-a914-f4e4d9158ee7"/>
+<br><br>
+    
   Exemplo de pasta ordenada por extensão:<br>
-![image](https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/895de2df-006a-4945-828f-3c46533f4cc7)
+<img src="https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/895de2df-006a-4945-828f-3c46533f4cc7"/>
 
-<br>
-<br>
-Fique a vontade para contribuir com melhorias!
+<br/>
+### Fique a vontade para contribuir com melhorias!
