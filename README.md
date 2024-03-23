@@ -19,4 +19,5 @@ Esse projeto é uma demonstração simples do uso de background services do .NET
 <img src="https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/895de2df-006a-4945-828f-3c46533f4cc7"/>
 
 <br/>
+
 ### Fique a vontade para contribuir com melhorias!
