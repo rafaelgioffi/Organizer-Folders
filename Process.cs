@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.VisualBasic.FileIO;
-using Newtonsoft.Json.Linq;
 
 namespace OrganizeFolders
 {
@@ -48,27 +47,57 @@ namespace OrganizeFolders
                 }
             }
 
-            //verifica se os arquivos são iguais, senão substitui na pasta de destino...
-            string projectFile = File.ReadAllText(projectFilePath);
-            string destinationFile = File.ReadAllText(fileSettings);
+            //Verifica se os arquivos são iguais, senão substitui...
+            DateTime dateProject = File.GetLastWriteTime(projectFilePath);
+            DateTime dateDocuments = File.GetLastWriteTime(fileSettings);
 
-            JObject jpf = JObject.Parse(projectFile);
-            JObject jdf = JObject.Parse(destinationFile);
-
-            if (!JToken.DeepEquals(jpf, jdf))
+            if (dateProject > dateDocuments)
             {
                 try
                 {
                     File.Copy(projectFilePath, fileSettings, true);
-                    Log($"Arquivo de configurações diferentes na origem e/ou destino. Arquivo substituído");
+                    Log($"Arquivo {projectFilePath} copiado para {fileSettings}.");
                 }
                 catch (Exception ex)
                 {
-                    Log($"Erro ao copiar o arquivo {projectFilePath} para {fileSettings}. {ex.Message}");
+                    Log($"Falha ao copiar o arquivo de configurações de {projectFilePath} para {fileSettings}. {ex.Message}");
+                }
+            }
+            else if (dateDocuments > dateProject)
+            {
+                try
+                {
+                    File.Copy(fileSettings, projectFilePath, true);
+                    Log($"Arquivo {fileSettings} copiado para {projectFilePath}.");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Falha ao copiar o arquivo de configurações de {projectFilePath} para {fileSettings}. {ex.Message}");
                 }
             }
 
-            config = new ConfigurationBuilder()            
+            //verifica se os arquivos são iguais, senão substitui na pasta de destino... DEPRECIADO
+
+            //string projectFile = File.ReadAllText(projectFilePath);
+            //string destinationFile = File.ReadAllText(fileSettings);
+
+            //JObject jpf = JObject.Parse(projectFile);
+            //JObject jdf = JObject.Parse(destinationFile);
+
+            //if (!JToken.DeepEquals(jpf, jdf))
+            //{
+            //    try
+            //    {
+            //        File.Copy(projectFilePath, fileSettings, true);
+            //        Log($"Arquivo de configurações diferentes na origem e/ou destino. Arquivo substituído");
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Log($"Erro ao copiar o arquivo {projectFilePath} para {fileSettings}. {ex.Message}");
+            //    }
+            //}
+
+            config = new ConfigurationBuilder()
             .AddJsonFile(fileSettings, optional: false, reloadOnChange: true)
             .Build();
 
@@ -98,7 +127,7 @@ namespace OrganizeFolders
         }
 
         private async Task GetFoldersAndFiles()
-        {   
+        {
             string folder1 = config["Folders:Folder1"];
             string folder2 = config["Folders:Folder2"];
             string folder3 = config["Folders:Folder3"];
@@ -161,16 +190,16 @@ namespace OrganizeFolders
             }
 
             try
-            {                
+            {
                 for (int i = 0; i < folders.Count; i++)
-                {                    
+                {
                     var queueFiles = Directory.EnumerateFiles(folders[i]);
                     if (queueFiles.Any())
                     {
                         Log($"Processando a pasta {folders[i]}");
-                        
+
                         var fileInfo = new FileInfo(folders[i]);
-                        
+
                         foreach (var queueFile in queueFiles)
                         {
                             fileInfo = new FileInfo(queueFile);
@@ -191,8 +220,8 @@ namespace OrganizeFolders
                                         fileYear = fileInfo.CreationTime.Year.ToString();
                                         fileYear = fileInfo.CreationTime.Month.ToString("D2");
                                     }
-                                                                       
-                                    var folderYear = Path.Combine(folders[i], fileYear);                                    
+
+                                    var folderYear = Path.Combine(folders[i], fileYear);
                                     var folderMonth = Path.Combine(folders[i], fileYear + "\\" + fileMonth);
 
                                     if (!Directory.Exists(folderYear))
@@ -220,7 +249,7 @@ namespace OrganizeFolders
                                     }
                                     break;
 
-                                case "type":                                   
+                                case "type":
                                     var folderName = "";
                                     if (string.IsNullOrEmpty(fileInfo.Extension))
                                     {
@@ -273,7 +302,7 @@ namespace OrganizeFolders
                     fileInfo = new FileInfo(file);
 
                     foreach (var folder in pathFiles)
-                    {                        
+                    {
                         int fileNumber = 1;
                         var result = fileExistsInPath(folder, fileInfo.Name, fileInfo.Extension, fileNumber);
 
@@ -286,7 +315,7 @@ namespace OrganizeFolders
                             Log($"Falha ao mover o arquivo {file} para {result}. {ex.Message}");
                         }
 
-                        break;                       
+                        break;
                     }
                 }
             }
@@ -317,13 +346,13 @@ namespace OrganizeFolders
         }
 
         public void ClearTemp()
-        {         
+        {
             if (cleanTemp)
             {
                 string tempFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp\\");
                 string winTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp\\");
                 string prefetchDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Prefetch\\");
-                
+
                 List<string> tempFolders = new List<string>();
                 tempFolders.Add(tempFolder);
                 tempFolders.Add(winTemp);
@@ -363,7 +392,7 @@ namespace OrganizeFolders
                                 {
                                     File.Delete(file);
                                 }
-                                catch (Exception ex )
+                                catch (Exception ex)
                                 {
                                     Log($"Falha ao excluir o arquivo {file} em {folder}. {ex.Message}");
                                 }
@@ -382,12 +411,12 @@ namespace OrganizeFolders
                     {
                         Log($"Falha ao excluir pastas em {tmp}");
                     }
-                }                
+                }
             }
         }
 
         public void Log(string message, bool special = false)
-        {         
+        {
             if (logging)
             {
                 using (StreamWriter sw = new StreamWriter(config["Logging:File"], true))
