@@ -11,11 +11,12 @@ Esse projeto é uma demonstração simples do uso de background services do .NET
   <li>Recurso que tenta apagar os arquivos temporários do Windows se habilitado, pastas: C:\Windows\Temp, C:\Windows\Prefetch e C:\Users\<usuário>\AppData\Local\Temp</li>
   <li>Tempo de execução de cada ciclo configurado pelo usuário</li>
 </ul>
-    Exemplo de pasta ordenada por data:
-![image](https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/ab167668-dfac-45e9-8442-8a613f6bb224)
+    Exemplo de pasta ordenada por data:<br>
+![image](https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/05f45870-ba7c-47d5-a914-f4e4d9158ee7)
 
-  Exemplo de pasta ordenada por extensão:
+<br>
+  Exemplo de pasta ordenada por extensão:<br>
 ![image](https://github.com/rafaelgioffi/Organizer-Folders/assets/6379933/895de2df-006a-4945-828f-3c46533f4cc7)
-
+<br>
 <br>
 Fique a vontade para contribuir com melhorias!
